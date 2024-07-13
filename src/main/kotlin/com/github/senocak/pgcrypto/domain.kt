@@ -16,14 +16,16 @@ import org.hibernate.annotations.ColumnTransformer
 import org.hibernate.annotations.GenericGenerator
 import org.hibernate.annotations.OnDelete
 import org.hibernate.annotations.OnDeleteAction
+import org.hibernate.annotations.UuidGenerator
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor
 
 @MappedSuperclass
 open class BaseDomain(
     @Id
-    @GeneratedValue(generator = "UUID")
-    @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
+    @UuidGenerator
+    //@GeneratedValue(generator = "UUID")
+    //@GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
     @Column(name = "id", updatable = false, nullable = false)
     var id: String? = null,
     @Column var createdAt: Date = Date(),
