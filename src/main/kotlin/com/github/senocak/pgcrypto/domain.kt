@@ -4,7 +4,6 @@ import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
 import jakarta.persistence.ForeignKey
-import jakarta.persistence.GeneratedValue
 import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
@@ -13,7 +12,6 @@ import jakarta.persistence.Table
 import java.io.Serializable
 import java.util.Date
 import org.hibernate.annotations.ColumnTransformer
-import org.hibernate.annotations.GenericGenerator
 import org.hibernate.annotations.OnDelete
 import org.hibernate.annotations.OnDeleteAction
 import org.hibernate.annotations.UuidGenerator
@@ -23,9 +21,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor
 @MappedSuperclass
 open class BaseDomain(
     @Id
-    @UuidGenerator
-    //@GeneratedValue(generator = "UUID")
-    //@GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
+    @UuidGenerator(style = UuidGenerator.Style.RANDOM)
     @Column(name = "id", updatable = false, nullable = false)
     var id: String? = null,
     @Column var createdAt: Date = Date(),
