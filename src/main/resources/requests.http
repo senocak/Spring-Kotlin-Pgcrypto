@@ -1,0 +1,6 @@
+###
+GET http://localhost:8082/users
+
+###
+GET http://localhost:8082/messages?name=Anıl3
+
