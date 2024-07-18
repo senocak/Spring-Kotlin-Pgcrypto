@@ -19,7 +19,9 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 class PgcryptoApplication(
     private val userRepository: UserRepository,
-    private val messageRepository: MessageRepository
+    private val messageRepository: MessageRepository,
+    private val studentRepository: StudentRepository,
+    private val courseRepository: CourseRepository,
 ) {
 
     @GetMapping("/users")
@@ -29,10 +31,8 @@ class PgcryptoApplication(
     fun getAllMessages(
         @RequestParam firstname: String?,
         @RequestParam lastname: String?,
-    ) = messageRepository.findAll(createSpecification(firstname, lastname))
-
-    private fun createSpecification(firstname: String? = null, lastname: String? = null): Specification<Message> {
-        return Specification { root: Root<Message>, query: CriteriaQuery<*>, builder: CriteriaBuilder ->
+    ): MutableList<Message> {
+        val specification = Specification { root: Root<Message>, query: CriteriaQuery<*>, builder: CriteriaBuilder ->
             val predicates: MutableList<Predicate> = ArrayList()
 
             val fromUser: Join<User, Message> = root.join("from", JoinType.LEFT)
@@ -50,8 +50,27 @@ class PgcryptoApplication(
 
             query.where(*predicates.toTypedArray()).distinct(true).restriction
         }
+        return messageRepository.findAll(specification)
     }
 
+    @GetMapping("/students")
+    fun getAllStudents(
+        @RequestParam name: String?
+    ): List<Student> {
+        val specification = Specification { root: Root<Student>, query: CriteriaQuery<*>, builder: CriteriaBuilder ->
+            val predicates: MutableList<Predicate> = ArrayList()
+
+            val likedCourses: Join<User, Student> = root.join("likedCourses", JoinType.LEFT)
+            val hatedCourses: Join<User, Student> = root.join("hatedCourses", JoinType.LEFT)
+            if (!name.isNullOrEmpty()){
+                val predicateNameFrom: Predicate = builder.like(builder.lower(likedCourses.get("name")), "%${name.lowercase()}%")
+                val predicateNameTo: Predicate = builder.like(builder.lower(hatedCourses.get("name")), "%${name.lowercase()}%")
+                predicates.add(builder.or(predicateNameFrom, predicateNameTo))
+            }
+            query.where(*predicates.toTypedArray()).distinct(true).restriction
+        }
+        return studentRepository.findAll(specification)
+    }
 
     @EventListener(value = [ApplicationReadyEvent::class])
     fun init(event: ApplicationReadyEvent) {
@@ -67,9 +86,30 @@ class PgcryptoApplication(
         val message3: Message = messageRepository.save(Message(from = user1, to = user2, content = "1to2-3"))
 
         val message4: Message = messageRepository.save(Message(from = user2, to = user3, content = "2to3-1"))
+
+        courseRepository.deleteAll()
+        studentRepository.deleteAll()
+        val course1: Course = courseRepository.save(Course(name = "course1"))
+        val course2: Course = courseRepository.save(Course(name = "course2"))
+        val course3: Course = courseRepository.save(Course(name = "course3"))
+        val course4: Course = courseRepository.save(Course(name = "course4"))
+        val student1: Student = studentRepository.save(Student(name = "student1").also { it.likedCourses = setOf(course1); it.hatedCourses = setOf(course1); })
+        val student2: Student = studentRepository.save(Student(name = "student2").also { it.likedCourses = setOf(course1, course2); it.hatedCourses = setOf(course2, course3); })
     }
 }
 
 fun main(args: Array<String>) {
     runApplication<PgcryptoApplication>(*args)
 }
+
+
+//    @Bean
+//    public SecurityFilterChain configure(AuthenticationManagerBuilder auth) throws Exception {
+//        auth.
+//                jdbcAuthentication()
+//                .usersByUsernameQuery("select email as principal, password as credentials, true from user where email=?")
+//                .authoritiesByUsernameQuery("select u.email as principal, r.role as role from user u inner join user_role ur on(u.user_id=ur.user_id) inner join role r on(ur.role_id=r.role_id) where u.email=?")
+//                .dataSource(dataSource)
+//                .passwordEncoder(bCryptPasswordEncoder)
+//                .rolePrefix("ROLE_");
+//    }

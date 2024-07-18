@@ -1,11 +1,14 @@
 package com.github.senocak.pgcrypto
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
 import jakarta.persistence.ForeignKey
 import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
+import jakarta.persistence.JoinTable
+import jakarta.persistence.ManyToMany
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.MappedSuperclass
 import jakarta.persistence.Table
@@ -25,7 +28,6 @@ open class BaseDomain(
     @Column(name = "id", updatable = false, nullable = false)
     var id: String? = null,
     @Column var createdAt: Date = Date(),
-    @Column var updatedAt: Date = Date(),
 ): Serializable
 
 @Entity
@@ -83,3 +85,51 @@ data class Message (
 
 interface UserRepository: JpaRepository<User, String>, JpaSpecificationExecutor<User>
 interface MessageRepository: JpaRepository<Message, String>, JpaSpecificationExecutor<Message>
+
+
+@Entity
+@Table(name = "student")
+class Student(
+    @Column(name = "name", nullable = false, columnDefinition = "bytea")
+    @ColumnTransformer(
+        forColumn = "name",
+        read = "pgp_sym_decrypt(name, 'pswd')",
+        write = "pgp_sym_encrypt(?, 'pswd')"
+    )
+    var name: String
+): BaseDomain() {
+    @ManyToMany
+    @JoinTable(
+        name = "course_like",
+        joinColumns = [JoinColumn(name = "student_id")],
+        inverseJoinColumns = [JoinColumn(name = "course_id")]
+    )
+    @JsonIgnore
+    var likedCourses: Set<Course>? = null
+
+    @ManyToMany
+    @JoinTable(
+        name = "course_hate",
+        joinColumns = [JoinColumn(name = "student_id")],
+        inverseJoinColumns = [JoinColumn(name = "course_id")]
+    )
+    @JsonIgnore
+    var hatedCourses: Set<Course>? = null
+}
+
+@Entity
+@Table(name = "course")
+class Course(
+    @Column(name = "name", nullable = false, columnDefinition = "bytea")
+    @ColumnTransformer(
+        forColumn = "name",
+        read = "pgp_sym_decrypt(name, 'pswd')",
+        write = "pgp_sym_encrypt(?, 'pswd')"
+    )
+    var name: String
+): BaseDomain() {
+    @ManyToMany(mappedBy = "likedCourses")
+    var likes: Set<Student>? = null
+}
+interface StudentRepository: JpaRepository<Student, String>, JpaSpecificationExecutor<Student>
+interface CourseRepository: JpaRepository<Course, String>, JpaSpecificationExecutor<Course>
